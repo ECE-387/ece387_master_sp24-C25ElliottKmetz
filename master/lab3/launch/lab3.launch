@@ -2,13 +2,12 @@
 <launch>
   <!-- Bring up all local nodes first -->
 
-  <!-- model to visualize the Turtlebot3 in RVIZ 
+  <!--model to visualize the Turtlebot3 in RVIZ -->
   <include file="$(find turtlebot3_bringup)/launch/turtlebot3_model.launch"/>
--->
 
   <!-- controller to rotate the robot --> 
   <node
-    name="controller" pkg="lab2" type="controller.py"
+    name="controller" pkg="lab3" type="turtlebot_controller.py"
     output="screen" launch-prefix="xterm -e"
   />
 
@@ -19,7 +18,6 @@
     env-loader="/home/pi/robot_ws/devel/remote_env_loader.sh"
     default="true"
     user="pi"
-    
   />
 
   <!-- core functionality of the Turtlebot3 -->
@@ -29,4 +27,12 @@
     <param name="passkey" value="dfec3141"/>
   </node>
 
+  <arg name="set_frame_id" default="base_scan"/>
+
+    <node machine="robot10" pkg="hls_lfcd_lds_driver" type="hlds_laser_publisher" name="turtlebot3_lds" output="screen">
+      <param name="port" value="/dev/ttyUSB0"/>
+      <param name="frame_id" value="$(arg set_frame_id)"/>
+    </node>
+
 </launch>
+
