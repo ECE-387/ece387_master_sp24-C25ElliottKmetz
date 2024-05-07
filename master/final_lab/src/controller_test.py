@@ -38,7 +38,7 @@ class Controller():
 	april_dist = Float32
 	state = String
 	timer = 0
-	INIT_HDG = 0
+	INIT_HDG = 5000
 	low = 0
 	high = 1
 
@@ -105,37 +105,43 @@ class Controller():
 				#Create the left and right angle bound for the left and right direction based upon current orientation and initial orientation
 
 				if self.INIT_HDG < 5000:
-					right = 270
-					left = 90
-					rightlb = right - 5 + (self.INIT_HDG - self.curr_yaw)
-					rightup = right + 5 + (self.INIT_HDG - self.curr_yaw)
+					right = 300
+					left = 60
 
-					leftlb = left - 5 + (self.INIT_HDG - self.curr_yaw)
-					leftup = left + 5 + (self.INIT_HDG - self.curr_yaw)
+					rightlb = right - 5
+					rightup = right + 5
 
-					#Ensure the bounds are possible
-					if rightlb > 360:
-						rightlb = rightlb - 360
-					elif rightlb < 0:
-						rightlb = rightlb + 360
+					leftlb = left - 5
+					leftup = left + 5
+					# rightlb = right - 5 + (self.INIT_HDG - self.curr_yaw)
+					# rightup = right + 5 + (self.INIT_HDG - self.curr_yaw)
 
-					if rightup > 360:
-						rightup = rightup - 360
-					elif rightup < 0:
-						rightup = rightup + 360
+					# leftlb = left - 5 + (self.INIT_HDG - self.curr_yaw)
+					# leftup = left + 5 + (self.INIT_HDG - self.curr_yaw)
 
-					if leftup > 360:
-						leftup = leftup - 360
-					elif leftup < 0:
-						leftup = leftup + 360
+					# #Ensure the bounds are possible
+					# if rightlb > 360:
+					# 	rightlb = rightlb - 360
+					# elif rightlb < 0:
+					# 	rightlb = rightlb + 360
 
-					if leftlb > 360:
-						leftlb = leftlb - 360
-					elif leftlb < 0:
-						leftlb = leftlb + 360
+					# if rightup > 360:
+					# 	rightup = rightup - 360
+					# elif rightup < 0:
+					# 	rightup = rightup + 360
+
+					# if leftup > 360:
+					# 	leftup = leftup - 360
+					# elif leftup < 0:
+					# 	leftup = leftup + 360
+
+					# if leftlb > 360:
+					# 	leftlb = leftlb - 360
+					# elif leftlb < 0:
+					# 	leftlb = leftlb + 360
 
 					#Front Direction: if degrees is between -15 and 15
-					if (deg > 345 or deg < 15):
+					if (deg > 355 or deg < 5):
 						cr30 += 1
 						cr30tot += rng
 
@@ -225,11 +231,10 @@ class Controller():
 			
 			print("Executing State 0: Wall following")
 
-			lin_x = 0.05
-			ang_z = 0.0
-			yaw_err = 0.0
+			lin_x = 0.1
+			ang_z = float()
+			# yaw_err = 0.0
 			self.cmd.linear.x = lin_x
-			self.cmd.angular.z = ang_z
 			self.pub.publish(self.cmd) 
 			self.avg_dist_err = self.rightavg_dist - self.leftavg_dist
 			
@@ -238,61 +243,98 @@ class Controller():
 			print("Intial heading is %f degrees." % (self.INIT_HDG))
 
 			#if there is significant difference between both sides and receiving data from the lidar sensor.
-			if abs(self.avg_dist_err) >= 0.15 and self.rightavg_dist > 0 and self.leftavg_dist > 0 and (self.curr_yaw <= 35 or self.curr_yaw >= 325):
-
+			if (0.5 >= abs(self.avg_dist_err) >= 0.15) and (4 > self.rightavg_dist > 0) and (4 > self.leftavg_dist > 0) and (2 > self.avg_dist or self.avg_dist == 0):
 				if self.avg_dist_err >= 0.15: # closer on left turning right
-					ang_z = -self.avg_dist_err*self.YAW_GAIN
+					ang_z = self.avg_dist_err*self.YAW_GAIN
 
 				elif self.avg_dist_err <= -0.15:	# close on right, turning left
-					ang_z = -self.avg_dist_err*self.YAW_GAIN
+					ang_z = self.avg_dist_err*self.YAW_GAIN
 
-			#State 6 conditions	
-			elif self.rightavg_dist == 0 and self.leftavg_dist == 0 and self.avg_dist > 3:
-				
-				self.state = "Shutdown State"
-			
-			#Within distance parameter conditions, ensure direction is correct
-			elif abs(self.avg_dist_err) <= 0.15 and self.rightavg_dist > 0 and self.leftavg_dist > 0:
-				if 180 >= self.curr_yaw >= 3:
-					ang_z = - self.curr_yaw * self.YAW_GAIN	#This should always be a negative value to make it turn right.
-
-					#If it is turned the wrong way stop moving forward and just turn.
-					if 180 >= self.curr_yaw >= 30:
-						lin_x = 0
-
-				elif 180 < self.curr_yaw <= 357 :
-					ang_z = self.curr_yaw * self.YAW_GAIN	#This should always be a positive value to make it turn left.
-
-					#If it is turned the wrong way stop moving forward and just turn.
-					if 180 < self.curr_yaw <= 330:
-						lin_x = 0
-						
-			elif abs(self.avg_dist_err) >= 0.15 and self.rightavg_dist > 0 and self.leftavg_dist > 0 and 35 < self.curr_yaw < 325:
-				if 180 >= self.curr_yaw > 35:
-					ang_z = - self.curr_yaw * self.YAW_GAIN	#This should always be a negative value to make it turn right.
-
-				elif 180 < self.curr_yaw < 325 :
-					ang_z = self.curr_yaw * self.YAW_GAIN	#This should always be a positive value to make it turn left.
-
-			
-				
+				if 0 < ang_z < self.MIN_ANG_Z: 
+					ang_z = self.MIN_ANG_Z		
+				elif 0 > ang_z > -self.MIN_ANG_Z:
+					ang_z = -self.MIN_ANG_Z	
+				elif ang_z > self.MAX_ANG_Z: 
+					ang_z = self.MAX_ANG_Z	
+				elif ang_z < -self.MAX_ANG_Z: 
+					ang_z = -self.MAX_ANG_Z
 					
-			#Ensure the ang_z does not have ridiculous values
-			if 0 < ang_z < self.MIN_ANG_Z: 
-				ang_z = self.MIN_ANG_Z		
-			elif 0 > ang_z > -self.MIN_ANG_Z:
-				ang_z = -self.MIN_ANG_Z	
-			elif ang_z > self.MAX_ANG_Z: 
-				ang_z = self.MAX_ANG_Z	
-			elif ang_z < -self.MAX_ANG_Z: 
-				ang_z = -self.MAX_ANG_Z	       
-			
-			print("turning at %f" % ang_z)
+			else:
+				ang_z = 0
 
-			#Publish the linear and angular commands to the cmd_vel topic
 			self.cmd.angular.z = ang_z
-			self.cmd.linear.x = lin_x
 			self.pub.publish(self.cmd) 
+				
+  ###################################################################################
+		# if self.state == "Wall Following State" and self.INIT_HDG < 5000:
+			
+		# 	print("Executing State 0: Wall following")
+
+		# 	lin_x = 0.05
+		# 	ang_z = 0.0
+		# 	yaw_err = 0.0
+		# 	self.cmd.linear.x = lin_x
+		# 	self.cmd.angular.z = ang_z
+		# 	self.pub.publish(self.cmd) 
+		# 	self.avg_dist_err = self.rightavg_dist - self.leftavg_dist
+			
+		# 	print("Average distance error is %f" % (self.avg_dist_err))
+		# 	print("Current heading is %f degrees." % (self.curr_yaw))
+		# 	print("Intial heading is %f degrees." % (self.INIT_HDG))
+
+		# 	#if there is significant difference between both sides and receiving data from the lidar sensor.
+		# 	if abs(self.avg_dist_err) >= 0.15 and self.rightavg_dist > 0 and self.leftavg_dist > 0 and (self.curr_yaw <= 35 or self.curr_yaw >= 325):
+
+		# 		if self.avg_dist_err >= 0.15: # closer on left turning right
+		# 			ang_z = -self.avg_dist_err*self.YAW_GAIN
+
+		# 		elif self.avg_dist_err <= -0.15:	# close on right, turning left
+		# 			ang_z = -self.avg_dist_err*self.YAW_GAIN
+
+		# 	#State 6 conditions	
+		# 	elif self.rightavg_dist == 0 and self.leftavg_dist == 0 and self.avg_dist > 3:
+				
+		# 		self.state = "Shutdown State"
+			
+		# 	#Within distance parameter conditions, ensure direction is correct
+		# 	elif abs(self.avg_dist_err) <= 0.15 and self.rightavg_dist > 0 and self.leftavg_dist > 0:
+		# 		if 180 >= self.curr_yaw >= 3:
+		# 			ang_z = - self.curr_yaw * self.YAW_GAIN	#This should always be a negative value to make it turn right.
+
+		# 			#If it is turned the wrong way stop moving forward and just turn.
+		# 			if 180 >= self.curr_yaw >= 30:
+		# 				lin_x = 0
+
+		# 		elif 180 < self.curr_yaw <= 357 :
+		# 			ang_z = self.curr_yaw * self.YAW_GAIN	#This should always be a positive value to make it turn left.
+
+		# 			#If it is turned the wrong way stop moving forward and just turn.
+		# 			if 180 < self.curr_yaw <= 330:
+		# 				lin_x = 0
+						
+		# 	elif abs(self.avg_dist_err) >= 0.15 and self.rightavg_dist > 0 and self.leftavg_dist > 0 and 35 < self.curr_yaw < 325:
+		# 		if 180 >= self.curr_yaw > 35:
+		# 			ang_z = - self.curr_yaw * self.YAW_GAIN	#This should always be a negative value to make it turn right.
+
+		# 		elif 180 < self.curr_yaw < 325 :
+		# 			ang_z = self.curr_yaw * self.YAW_GAIN	#This should always be a positive value to make it turn left.	
+					
+		# 	#Ensure the ang_z does not have ridiculous values
+		# 	if 0 < ang_z < self.MIN_ANG_Z: 
+		# 		ang_z = self.MIN_ANG_Z		
+		# 	elif 0 > ang_z > -self.MIN_ANG_Z:
+		# 		ang_z = -self.MIN_ANG_Z	
+		# 	elif ang_z > self.MAX_ANG_Z: 
+		# 		ang_z = self.MAX_ANG_Z	
+		# 	elif ang_z < -self.MAX_ANG_Z: 
+		# 		ang_z = -self.MAX_ANG_Z	       
+			
+		# 	print("turning at %f" % ang_z)
+
+		# 	#Publish the linear and angular commands to the cmd_vel topic
+		# 	self.cmd.angular.z = ang_z
+		# 	self.cmd.linear.x = lin_x
+		# 	self.pub.publish(self.cmd) 
 
 			############################################
 

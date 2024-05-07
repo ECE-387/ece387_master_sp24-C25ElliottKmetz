@@ -5,6 +5,9 @@
 <arg name="camera_name" default="/usb_cam" />
 <arg name="image_topic" default="image_raw" />
 
+<!--model to visualize the Turtlebot3 in RVIZ -->
+<include file="$(find turtlebot3_bringup)/launch/turtlebot3_model.launch"/>
+
 <rosparam command="load" file="$(find apriltag_ros)/config/settings.yaml" ns="$(arg node_namespace)" />
 <rosparam command="load" file="$(find apriltag_ros)/config/tags.yaml" ns="$(arg node_namespace)" />
     
@@ -53,9 +56,6 @@
   <param name="port" value="/dev/ttyUSB0"/>
   <param name="frame_id" value="$(arg set_frame_id)"/>
 </node>
-
-  <!--model to visualize the Turtlebot3 in RVIZ -->
-<include file="$(find turtlebot3_bringup)/launch/turtlebot3_model.launch"/>
 
 <!-- controller to rotate the robot --> 
 <!-- <node
