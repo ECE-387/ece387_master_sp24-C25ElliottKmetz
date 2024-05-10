@@ -73,9 +73,9 @@ class StopDetector(object):
         #print(focal)
         #Calculate the distance from the camera
         #D = (W*F) / P
-        if self.pixels > 0:
-            Dist = (self.STOP_WIDTH*self.FOCAL) / self.pixels
-            self.pub.publish(Dist)
+            if self.pixels > 0:
+                Dist = (self.STOP_WIDTH*self.FOCAL) / self.pixels
+                self.pub.publish(Dist)
 
     def shutdownhook(self):
         print("Shutting down")

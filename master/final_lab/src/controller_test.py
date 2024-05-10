@@ -23,7 +23,7 @@ time.sleep(0)
 
 class Controller():
 
-	K_HDG = 0.001 # rotation controller constant
+	K_HDG = 0.01 # rotation controller constant
 	HDG_TOL = 1 # heading tolerance +/- degrees
 	MIN_ANG_Z = 0.5 # limit rad/s values sent to Turtlebot3
 	MAX_ANG_Z = 1.5 # limit rad/s values sent to Turtlebot3
@@ -105,8 +105,8 @@ class Controller():
 				#Create the left and right angle bound for the left and right direction based upon current orientation and initial orientation
 
 				if self.INIT_HDG < 5000:
-					right = 300
-					left = 60
+					right = 315
+					left = 45
 
 					rightlb = right - 5
 					rightup = right + 5
@@ -190,8 +190,13 @@ class Controller():
    
 			#Initialize the first heading taken to be the original heading to use as a reference
 			if self.INIT_HDG == 5000:
+
+				#FOR ECE HALLWAY FACING EAST FINAL PROJECT HARD CODE
+				self.INIT_HDG = 0
+
+				#FOR A DIRECTION OTHER THAN STRAIGHT DOWN HALLWAY
 				self.INIT_HDG = self.curr_yaw
-				 
+
 	def callback_stopdist(self, stop_dist):
 
 		self.stop_dist = stop_dist.data/100
@@ -218,7 +223,7 @@ class Controller():
 			elif self.april_id[0] == 1:
 				self.state = "Right Turn State"
 			elif self.april_id[0] == 2:
-				self.state = "U-Turn State"
+				self.state = "U-turn State"
 			elif self.april_id[0] == 3:
 				self.state = "360 Turn State"
 
@@ -230,20 +235,26 @@ class Controller():
 		if self.state == "Wall Following State" and self.INIT_HDG < 5000:
 			
 			print("Executing State 0: Wall following")
-
+			
 			lin_x = 0.1
 			ang_z = float()
+
+############ FOR TESTING DELETE LATER ###########
+			# ang_z = 0
+			# self.cmd.angular.z = ang_z
+#################################################
+
 			# yaw_err = 0.0
 			self.cmd.linear.x = lin_x
 			self.pub.publish(self.cmd) 
 			self.avg_dist_err = self.rightavg_dist - self.leftavg_dist
 			
-			print("Average distance error is %f" % (self.avg_dist_err))
-			print("Current heading is %f degrees." % (self.curr_yaw))
-			print("Intial heading is %f degrees." % (self.INIT_HDG))
+			# print("Average distance error is %f" % (self.avg_dist_err))
+			# print("Current heading is %f degrees." % (self.curr_yaw))
+			# print("Intial heading is %f degrees." % (self.INIT_HDG))
 
-			#if there is significant difference between both sides and receiving data from the lidar sensor.
-			if (0.5 >= abs(self.avg_dist_err) >= 0.15) and (4 > self.rightavg_dist > 0) and (4 > self.leftavg_dist > 0) and (2 > self.avg_dist or self.avg_dist == 0):
+			# #if there is significant difference between both sides and receiving data from the lidar sensor.
+			if abs(self.avg_dist_err) >= 0.15 and 4 > self.rightavg_dist > 0 and 4 > self.leftavg_dist > 0:
 				if self.avg_dist_err >= 0.15: # closer on left turning right
 					ang_z = self.avg_dist_err*self.YAW_GAIN
 
@@ -261,8 +272,38 @@ class Controller():
 					
 			else:
 				ang_z = 0
+				lin_x = 0.1
+				# if 20 < self.curr_yaw < 340:
+				# 	yaw_err =  0 - self.curr_yaw
+				# 	# determine if robot should turn clockwise or counterclockwise
+
+				# 	# if yaw_err > 180:
+				# 	# 	yaw_err = yaw_err
+				# 	# elif yaw_err <= 180:
+				# 	# 	yaw_err = -1 * yaw_err
+							
+				# 	if yaw_err > 180:
+				# 		yaw_err = yaw_err - 360
+				# 	elif yaw_err < -180:
+				# 		yaw_err = yaw_err + 360
+
+				# 	ang_z = self.K_HDG * yaw_err
+
+				# 	if ang_z < self.MIN_ANG_Z: 
+				# 		ang_z = self.MIN_ANG_Z		
+				# 	elif ang_z > -self.MIN_ANG_Z:
+				# 		ang_z = -self.MIN_ANG_Z	
+				# 	elif ang_z > self.MAX_ANG_Z: 
+				# 		ang_z = self.MAX_ANG_Z	
+				# 	elif ang_z < -self.MAX_ANG_Z: 
+				# 		ang_z = -self.MAX_ANG_Z	
+
+				# else:
+				# 	lin_x = 0.1
+				# 	ang_z = 0
 
 			self.cmd.angular.z = ang_z
+			self.cmd.linear.x = lin_x
 			self.pub.publish(self.cmd) 
 				
   ###################################################################################
@@ -524,8 +565,8 @@ class Controller():
 			#Initialize a timer and also use it to know the direction you started in. 
 			if self.timer == 0:
 				init_yaw = self.curr_yaw
-				self.high = init_yaw - 87		#Swap high and low because we are subtracting now
-				self.low = init_yaw - 90
+				self.high = init_yaw - 85		#Swap high and low because we are subtracting now
+				self.low = init_yaw - 88
 				if self.low < 0:
 					self.low += 360
 
@@ -533,64 +574,22 @@ class Controller():
 					self.high += 360
 
 			self.timer += 1
-			#Continue moving forward at a slower speed
-			lin_x = 0.05
-			ang_z = 0
-			self.cmd.linear.x = lin_x
-			self.cmd.angular.z = ang_z
-			self.pub.publish(self.cmd) 
 
 			#If within threshold of apriltag
 			if self.april_dist < self.distance_threshold:
 				
 				print("State 3 Executing: Right Turn")
 
-				self.goal_yaw = self.curr_yaw - 90
+				lin_x = 0
+				ang_z = -0.5
 
-				# check bounds
-				if self.goal_yaw < 0:
-					self.goal_yaw = self.goal_yaw + 360
-				elif self.goal_yaw > 360:
-					self.goal_yaw = self.goal_yaw - 360
-		
-				self.turning = True
-
-				# turn until goal is reached
-				if self.turning == True:
-					yaw_err = self.curr_yaw - self.goal_yaw
-						
-					# determine if robot should turn clockwise or counterclockwise
-					# if yaw_err > 180:
-					# 	yaw_err = yaw_err - 360
-					# elif yaw_err < -180:
-					# 	yaw_err = yaw_err + 360
-						
-					# proportional controller that turns the robot until goal 
-					# yaw is reached
-					ang_z = self.K_HDG * yaw_err
-
-					if ang_z < self.MIN_ANG_Z: 
-						ang_z = self.MIN_ANG_Z		
-					elif ang_z > -self.MIN_ANG_Z:
-						ang_z = -self.MIN_ANG_Z	
-					elif ang_z > self.MAX_ANG_Z: 
-						ang_z = self.MAX_ANG_Z	
-					elif ang_z < -self.MAX_ANG_Z: 
-						ang_z = -self.MAX_ANG_Z	
-					
-					print(ang_z)
-						# check goal orientation
-					if abs(yaw_err) < self.HDG_TOL:
-						ang_z = 0  #Was missing this jesus :(
-						self.turning = False
-						
 				# set twist message and publish
 				self.cmd.linear.x = lin_x
 				self.cmd.angular.z = ang_z
 				self.pub.publish(self.cmd)
 
 			#Return back to state 0 only after successful completion
-			if self.low < self.curr_yaw < self.high and self.timer != 0:
+			if self.low < self.curr_yaw < self.high:
 				print("RAHHHHHHHHHHHHHHHHHH")
 				print("time to complete (sec) :", 0.05*self.timer)
 				self.state = "Wall Following State"
@@ -601,11 +600,12 @@ class Controller():
 		#TODO: State 4 U-Turn behaviour
 		elif self.state == "U-turn State":
 
+			
 			#Initialize a timer and also use it to know the direction you started in. 
 			if self.timer == 0:
 				init_yaw = self.curr_yaw
-				self.high = init_yaw - 177		#Swap high and low because we are subtracting now
-				self.low = init_yaw - 183
+				self.high = init_yaw - 175		#Swap high and low because we are subtracting now
+				self.low = init_yaw - 178
 				if self.low < 0:
 					self.low += 360
 
@@ -613,58 +613,15 @@ class Controller():
 					self.high += 360
 
 			self.timer += 1
-
-			#Continue moving forward at a slower speed
-			lin_x = 0.05
-			ang_z = 0
-			self.cmd.linear.x = lin_x
-			self.cmd.angular.z = ang_z
-			self.pub.publish(self.cmd) 
-
+			print(self.april_dist)
 			#If within threshold of apriltag
 			if self.april_dist < self.distance_threshold:
 				
 				print("State 4 Executing: U Turn")
 
-				#Turn right 180 degrees
-				self.goal_yaw = self.curr_yaw - 90
+				lin_x = 0
+				ang_z = -0.5
 
-				# check bounds
-				if self.goal_yaw < 0:
-					self.goal_yaw = self.goal_yaw + 360
-				elif self.goal_yaw > 360:
-					self.goal_yaw = self.goal_yaw - 360
-		
-				self.turning = True
-
-				# turn until goal is reached
-				if self.turning == True:
-					yaw_err = self.curr_yaw - self.goal_yaw
-						
-					# determine if robot should turn clockwise or counterclockwise
-					if yaw_err > 180:
-						yaw_err = yaw_err - 360
-					elif yaw_err < -180:
-						yaw_err = yaw_err + 360
-						
-					# proportional controller that turns the robot until goal 
-					# yaw is reached
-					ang_z = self.K_HDG * yaw_err
-
-					if ang_z < self.MIN_ANG_Z: 
-						ang_z = self.MIN_ANG_Z		
-					elif ang_z > -self.MIN_ANG_Z:
-						ang_z = -self.MIN_ANG_Z	
-					elif ang_z > self.MAX_ANG_Z: 
-						ang_z = self.MAX_ANG_Z	
-					elif ang_z < -self.MAX_ANG_Z: 
-						ang_z = -self.MAX_ANG_Z	
-					
-						# check goal orientation
-					if abs(yaw_err) < self.HDG_TOL:
-						ang_z = 0.0
-						self.turning = False
-							
 				# set twist message and publish
 				self.cmd.linear.x = lin_x
 				self.cmd.angular.z = ang_z
@@ -680,7 +637,6 @@ class Controller():
 		#TODO: Execute State 5: 360 turn hua
 		elif self.state == "360 Turn State":
 
-			
 			#Initialize a timer and also use it to know the direction you started in. 
 			if self.timer == 0:
 				init_yaw = self.curr_yaw
@@ -689,77 +645,34 @@ class Controller():
 				if self.low < 0:
 					self.low += 360
 
-				if high < 0:
-					high += 360
+				if self.high < 0:
+					self.high += 360
 
 			self.timer += 1
-
-			#Continue moving forward at a slower speed
-			lin_x = 0.05
-			ang_z = 0
-			self.cmd.linear.x = lin_x
-			self.cmd.angular.z = ang_z
-			self.pub.publish(self.cmd) 
 
 			#If within threshold of apriltag
 			if self.april_dist < self.distance_threshold:
 				
 				print("State 4 Executing: U Turn")
-
-				#Turn right 180 degrees
-				self.goal_yaw = self.curr_yaw - 90
-
-				# check bounds
-				if self.goal_yaw < 0:
-					self.goal_yaw = self.goal_yaw + 360
-				elif self.goal_yaw > 360:
-					self.goal_yaw = self.goal_yaw - 360
-		
-				self.turning = True
-
-				# turn until goal is reached
-				if self.turning == True:
-					yaw_err = self.curr_yaw - self.goal_yaw
 						
-					# determine if robot should turn clockwise or counterclockwise
-					if yaw_err > 180:
-						yaw_err = yaw_err - 360
-					elif yaw_err < -180:
-						yaw_err = yaw_err + 360
-						
-					# proportional controller that turns the robot until goal 
-					# yaw is reached
-					ang_z = self.K_HDG * yaw_err
-
-					if ang_z < self.MIN_ANG_Z: 
-						ang_z = self.MIN_ANG_Z		
-					elif ang_z > -self.MIN_ANG_Z:
-						ang_z = -self.MIN_ANG_Z	
-					elif ang_z > self.MAX_ANG_Z: 
-						ang_z = self.MAX_ANG_Z	
-					elif ang_z < -self.MAX_ANG_Z: 
-						ang_z = -self.MAX_ANG_Z	
-					
-						# check goal orientation
-					if abs(yaw_err) < self.HDG_TOL:
-						ang_z = 0.0
-						self.turning = False
-						self.state = "Shutdown State"
-							
+				lin_x = 0
+				ang_z = -0.5
 				# set twist message and publish
 				self.cmd.linear.x = lin_x
 				self.cmd.angular.z = ang_z
 				self.pub.publish(self.cmd)
 
 			#Return back to state 0 only after successful completion and 50 seconds have passed
-			if self.low < self.curr_yaw < self.high and self.timer > 50:
+			if self.low < self.curr_yaw < self.high and self.timer > 60:
 				print("time to complete (sec) :", 0.05*self.timer)
-				self.state = "Wall Following State"
 				self.timer = 0
+				self.state = "Shutdown State"
+
 		
 		#TODO: Execute State 6 T-section stopper
 		elif self.state == "Shutdown State":
-
+			
+			print("SHUTDOWN STATE")
 			#Stop and shutdown
 			lin_x = 0.0
 			ang_z = 0.0
@@ -783,7 +696,7 @@ if __name__ == '__main__':
 	while not rospy.is_shutdown():
 		c.state_execute()
 
-		#Chatgpt says we need this dunno why
+		#Chatgpt says we need this dunno why, prolly cause y'all stupid
 		rate.sleep()
 	
 	rospy.spin()
